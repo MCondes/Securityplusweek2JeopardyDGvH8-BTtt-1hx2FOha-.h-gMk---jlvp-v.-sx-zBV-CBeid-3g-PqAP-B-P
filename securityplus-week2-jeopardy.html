@@ -1,0 +1,745 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Security+ Week 2 Jeopardy</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=IBM+Plex+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --board-deep:   #050b2e;
+    --board-blue:   #0c1c66;
+    --board-blue-2: #14268c;
+    --gold:         #f4c542;
+    --gold-dim:     #b98f22;
+    --term-green:   #4ade80;
+    --term-red:     #f26363;
+    --ink:          #eef1ff;
+    --ink-dim:      #a9b3e6;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    min-height:100vh;
+    background:
+      radial-gradient(circle at 15% 10%, rgba(20,38,140,0.55), transparent 45%),
+      radial-gradient(circle at 85% 90%, rgba(20,38,140,0.4), transparent 50%),
+      var(--board-deep);
+    background-attachment:fixed;
+    color:var(--ink);
+    font-family:'Inter',sans-serif;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    padding:24px 16px 60px;
+    position:relative;
+    overflow-x:hidden;
+  }
+  body::before{
+    content:"";
+    position:fixed; inset:0;
+    background-image:
+      linear-gradient(rgba(244,197,66,0.045) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(244,197,66,0.045) 1px, transparent 1px);
+    background-size:42px 42px;
+    pointer-events:none;
+    mask-image: radial-gradient(circle at 50% 20%, black, transparent 75%);
+  }
+  .wrap{width:100%;max-width:1100px;position:relative;z-index:1;}
+
+  h1.title{
+    font-family:'Archivo Black',sans-serif;
+    font-size:clamp(22px,4vw,38px);
+    text-align:center;
+    letter-spacing:0.5px;
+    margin:6px 0 2px;
+    color:var(--gold);
+    text-shadow:0 0 22px rgba(244,197,66,0.35);
+  }
+  .subtitle{
+    text-align:center;
+    color:var(--ink-dim);
+    font-family:'IBM Plex Mono',monospace;
+    font-size:13px;
+    margin:0 0 22px;
+    letter-spacing:0.5px;
+  }
+  .subtitle .prompt{color:var(--term-green);}
+
+  /* ---------- Setup screen ---------- */
+  .setup-card{
+    max-width:560px; margin:40px auto 0;
+    background:linear-gradient(180deg, var(--board-blue) 0%, var(--board-deep) 100%);
+    border:1px solid rgba(244,197,66,0.25);
+    border-radius:14px;
+    padding:32px 28px 28px;
+    box-shadow:0 20px 60px rgba(0,0,0,0.45);
+  }
+  .setup-card h2{
+    font-family:'IBM Plex Mono',monospace;
+    color:var(--gold);
+    font-size:15px;
+    margin:0 0 18px;
+    display:flex; align-items:center; gap:8px;
+  }
+  .setup-card h2::before{content:"$";color:var(--term-green);}
+  .team-row{display:flex;gap:8px;margin-bottom:10px;}
+  .team-row input{
+    flex:1;
+    background:rgba(255,255,255,0.06);
+    border:1px solid rgba(244,197,66,0.3);
+    border-radius:8px;
+    padding:11px 12px;
+    color:var(--ink);
+    font-family:'Inter',sans-serif;
+    font-size:14px;
+    outline:none;
+    transition:border-color .15s;
+  }
+  .team-row input:focus{border-color:var(--gold);}
+  .team-row button.remove{
+    background:transparent;border:1px solid rgba(242,99,99,0.4);
+    color:var(--term-red); border-radius:8px; width:38px; cursor:pointer;
+    font-size:16px;
+  }
+  .ghost-btn{
+    width:100%;
+    background:transparent;
+    border:1px dashed rgba(169,179,230,0.4);
+    color:var(--ink-dim);
+    border-radius:8px;
+    padding:10px;
+    font-family:'IBM Plex Mono',monospace;
+    font-size:13px;
+    cursor:pointer;
+    margin-top:4px;
+  }
+  .ghost-btn:hover{border-color:var(--gold);color:var(--gold);}
+  .primary-btn{
+    width:100%;
+    margin-top:22px;
+    background:linear-gradient(180deg,#ffd968,var(--gold) 60%, var(--gold-dim));
+    border:none;
+    color:#1a1400;
+    font-family:'Archivo Black',sans-serif;
+    font-size:16px;
+    padding:14px;
+    border-radius:9px;
+    cursor:pointer;
+    letter-spacing:0.5px;
+    box-shadow:0 8px 24px rgba(244,197,66,0.25);
+  }
+  .primary-btn:disabled{opacity:0.4;cursor:not-allowed;box-shadow:none;}
+  .primary-btn:not(:disabled):hover{filter:brightness(1.06);}
+  .setup-hint{font-size:12px;color:var(--ink-dim);margin-top:10px;line-height:1.5;}
+
+  /* ---------- Scoreboard ---------- */
+  .scoreboard{
+    display:flex; flex-wrap:wrap; gap:10px; justify-content:center;
+    margin-bottom:22px;
+  }
+  .score-chip{
+    background:linear-gradient(180deg, var(--board-blue-2), var(--board-blue));
+    border:1px solid rgba(244,197,66,0.3);
+    border-radius:10px;
+    padding:9px 14px;
+    display:flex; align-items:center; gap:10px;
+    min-width:150px;
+  }
+  .score-chip .name{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:12px;
+    color:var(--ink-dim);
+    text-transform:uppercase;
+    letter-spacing:0.5px;
+  }
+  .score-chip .amt{
+    font-family:'Archivo Black',sans-serif;
+    font-size:20px;
+    color:var(--gold);
+    margin-left:auto;
+  }
+  .score-chip .amt.neg{color:var(--term-red);}
+  .score-adj{display:flex;flex-direction:column;gap:2px;}
+  .score-adj button{
+    background:rgba(255,255,255,0.08);
+    border:1px solid rgba(255,255,255,0.15);
+    color:var(--ink);
+    width:20px;height:16px;
+    font-size:10px;
+    line-height:1;
+    border-radius:4px;
+    cursor:pointer;
+  }
+  .score-adj button:hover{background:rgba(244,197,66,0.25);}
+
+  /* ---------- Board ---------- */
+  .board-scroll{overflow-x:auto; padding-bottom:8px;}
+  .board{
+    display:grid;
+    gap:6px;
+    min-width:600px;
+  }
+  .cat-header{
+    background:linear-gradient(180deg, var(--board-blue-2), var(--board-blue));
+    border:1px solid rgba(244,197,66,0.35);
+    border-radius:8px;
+    padding:12px 8px;
+    text-align:center;
+    font-family:'Archivo Black',sans-serif;
+    font-size:clamp(11px,1.5vw,15px);
+    color:var(--ink);
+    display:flex; align-items:center; justify-content:center;
+    min-height:64px;
+    text-transform:uppercase;
+    letter-spacing:0.3px;
+    line-height:1.25;
+  }
+  .clue-cell{
+    background:linear-gradient(180deg, var(--board-blue) 0%, #0a1650 100%);
+    border:1px solid rgba(244,197,66,0.18);
+    border-radius:8px;
+    min-height:72px;
+    display:flex; align-items:center; justify-content:center;
+    font-family:'IBM Plex Mono',monospace;
+    font-weight:700;
+    font-size:clamp(18px,2.4vw,26px);
+    color:var(--gold);
+    cursor:pointer;
+    position:relative;
+    transition:transform .12s, box-shadow .12s;
+  }
+  .clue-cell::before{content:"$";font-size:0.6em;opacity:0.6;margin-right:2px;}
+  .clue-cell:hover{transform:translateY(-2px);box-shadow:0 6px 18px rgba(244,197,66,0.2);border-color:var(--gold);}
+  .clue-cell.used{
+    background:rgba(255,255,255,0.02);
+    color:rgba(169,179,230,0.25);
+    cursor:default;
+    box-shadow:none;
+  }
+  .clue-cell.used::before{opacity:0.15;}
+  .clue-cell.used:hover{transform:none;box-shadow:none;border-color:rgba(244,197,66,0.08);}
+
+  .board-footer{
+    display:flex; justify-content:center; gap:12px; margin-top:22px;flex-wrap:wrap;
+  }
+  .link-btn{
+    background:transparent;
+    border:1px solid rgba(244,197,66,0.4);
+    color:var(--gold);
+    font-family:'IBM Plex Mono',monospace;
+    font-size:12px;
+    padding:9px 16px;
+    border-radius:20px;
+    cursor:pointer;
+  }
+  .link-btn:hover{background:rgba(244,197,66,0.12);}
+  .link-btn.subtle{color:var(--ink-dim);border-color:rgba(169,179,230,0.3);}
+
+  /* ---------- Modal ---------- */
+  .overlay{
+    position:fixed; inset:0; background:rgba(2,5,20,0.82);
+    backdrop-filter:blur(3px);
+    display:flex; align-items:center; justify-content:center;
+    z-index:50; padding:20px;
+  }
+  .clue-modal{
+    width:100%; max-width:680px;
+    background:linear-gradient(180deg, var(--board-blue-2), var(--board-deep));
+    border:1px solid rgba(244,197,66,0.4);
+    border-radius:16px;
+    box-shadow:0 30px 90px rgba(0,0,0,0.6);
+    overflow:hidden;
+    position:relative;
+  }
+  .term-bar{
+    display:flex; align-items:center; gap:6px;
+    padding:10px 14px;
+    background:rgba(0,0,0,0.25);
+    border-bottom:1px solid rgba(244,197,66,0.2);
+    font-family:'IBM Plex Mono',monospace;
+    font-size:12px;
+    color:var(--ink-dim);
+  }
+  .term-dot{width:9px;height:9px;border-radius:50%;}
+  .term-dot.r{background:#f26363;} .term-dot.y{background:#f4c542;} .term-dot.g{background:#4ade80;}
+  .term-bar .path{margin-left:8px;}
+  .clue-body{padding:34px 32px 28px;text-align:center;}
+  .clue-cat{
+    font-family:'IBM Plex Mono',monospace;
+    color:var(--gold);
+    font-size:12px;
+    letter-spacing:1.5px;
+    text-transform:uppercase;
+  }
+  .clue-pts{
+    font-family:'Archivo Black',sans-serif;
+    font-size:28px;
+    color:var(--ink);
+    margin:4px 0 22px;
+  }
+  .clue-question{
+    font-size:clamp(18px,2.6vw,24px);
+    line-height:1.45;
+    color:var(--ink);
+    margin-bottom:26px;
+    min-height:40px;
+  }
+  .clue-answer{
+    font-family:'IBM Plex Mono',monospace;
+    color:var(--term-green);
+    font-size:15px;
+    background:rgba(74,222,128,0.08);
+    border:1px solid rgba(74,222,128,0.3);
+    border-radius:8px;
+    padding:14px 16px;
+    margin-bottom:24px;
+    text-align:left;
+  }
+  .clue-answer .lbl{display:block;color:var(--ink-dim);font-size:11px;letter-spacing:1px;margin-bottom:4px;text-transform:uppercase;}
+  .reveal-btn{
+    background:var(--gold);
+    border:none;color:#1a1400;
+    font-family:'Archivo Black',sans-serif;
+    font-size:14px;
+    padding:12px 26px;
+    border-radius:24px;
+    cursor:pointer;
+  }
+  .reveal-btn:hover{filter:brightness(1.05);}
+  .award-label{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--ink-dim);margin-bottom:10px;text-transform:uppercase;letter-spacing:1px;}
+  .award-row{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;}
+  .award-btn{
+    background:rgba(255,255,255,0.06);
+    border:1px solid rgba(244,197,66,0.35);
+    color:var(--ink);
+    font-family:'Inter',sans-serif;
+    font-size:13px;font-weight:600;
+    padding:9px 14px;
+    border-radius:8px;
+    cursor:pointer;
+  }
+  .award-btn:hover{background:rgba(244,197,66,0.18);border-color:var(--gold);}
+  .award-btn.none{color:var(--ink-dim);border-color:rgba(169,179,230,0.3);}
+  .close-x{
+    position:absolute; top:14px; right:18px;
+    background:none;border:none;color:var(--ink-dim);
+    font-size:20px;cursor:pointer;
+  }
+  .close-x:hover{color:var(--gold);}
+
+  /* ---------- Final standings ---------- */
+  .standings{max-width:520px;margin:30px auto 0;text-align:center;}
+  .standings h2{font-family:'Archivo Black',sans-serif;color:var(--gold);font-size:26px;}
+  .standing-row{
+    display:flex;align-items:center;gap:14px;
+    background:rgba(255,255,255,0.04);
+    border:1px solid rgba(244,197,66,0.25);
+    border-radius:10px;
+    padding:14px 18px;margin-bottom:10px;
+    text-align:left;
+  }
+  .standing-row .rank{font-family:'Archivo Black',sans-serif;color:var(--ink-dim);font-size:18px;width:26px;}
+  .standing-row.first{border-color:var(--gold);box-shadow:0 0 24px rgba(244,197,66,0.25);}
+  .standing-row.first .rank{color:var(--gold);}
+  .standing-row .n{flex:1;font-weight:700;}
+  .standing-row .s{font-family:'IBM Plex Mono',monospace;font-size:18px;color:var(--gold);}
+
+  footer.credit{
+    text-align:center;margin-top:40px;color:rgba(169,179,230,0.35);
+    font-family:'IBM Plex Mono',monospace;font-size:11px;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1 class="title">Security+ Week 2 Jeopardy</h1>
+  <p class="subtitle"><span class="prompt">&gt;</span> instructor-hosted review game — click a clue to begin</p>
+
+  <!-- SETUP -->
+  <div id="setup-screen" class="setup-card">
+    <h2>set_up_teams.sh</h2>
+    <div id="team-inputs"></div>
+    <button class="ghost-btn" id="add-team">+ add team</button>
+    <button class="primary-btn" id="start-btn">Start Game</button>
+    <p class="setup-hint">Add 2–6 teams. Scores and revealed clues are saved in this browser, so you can refresh mid-class without losing progress.</p>
+  </div>
+
+  <!-- GAME -->
+  <div id="game-screen" style="display:none;">
+    <div class="scoreboard" id="scoreboard"></div>
+
+    <div id="board-view">
+      <div class="board-scroll">
+        <div class="board" id="board"></div>
+      </div>
+      <div class="board-footer">
+        <button class="link-btn" id="standings-btn">show standings</button>
+        <button class="link-btn subtle" id="reset-btn">reset game</button>
+      </div>
+    </div>
+
+    <div id="standings-view" class="standings" style="display:none;"></div>
+  </div>
+
+  <footer class="credit">Built for classroom review · not affiliated with Jeopardy Productions, Inc.</footer>
+</div>
+
+<div id="modal-root"></div>
+
+<script>
+/* ---------------------------------------------------------------
+   DATA — category, point value, question, answer
+   (answers kept in "What is ___?" form as given)
+------------------------------------------------------------------*/
+const CATEGORIES = [
+  { name:"Crypto Corner", clues:[
+    {points:100, q:"This one-way process creates a fixed-size value used to verify data integrity.", a:"What is hashing?"},
+    {points:200, q:"This random value is added before hashing passwords so identical passwords do not produce the same stored result.", a:"What is a salt (salting)?"},
+    {points:300, q:"This encryption type uses one shared secret key and is generally faster for bulk data.", a:"What is symmetric encryption?"},
+    {points:400, q:"In a digital signature, this key is used by the sender to sign the data.", a:"What is the private key?"},
+    {points:500, q:"This online certificate-status method can check whether a certificate has been revoked without downloading an entire revocation list.", a:"What is OCSP?"},
+  ]},
+  { name:"Vulnerability Vault", clues:[
+    {points:100, q:"This testing method examines source code or binaries without running the application.", a:"What is SAST (Static Application Security Testing)?"},
+    {points:200, q:"A scanner reports a vulnerability, but investigation shows the vulnerability is not actually present.", a:"What is a false positive?"},
+    {points:300, q:"This score expresses how severe a vulnerability is using standardized metrics.", a:"What is CVSS (Common Vulnerability Scoring System)?"},
+    {points:400, q:"When the preferred security control cannot be implemented, this alternate control should provide comparable protection.", a:"What is a compensating control?"},
+    {points:500, q:"After a vulnerability has been patched or otherwise remediated, this step confirms that the fix actually worked.", a:"What is validation / remediation validation?"},
+  ]},
+  { name:"Resilience & Recovery", clues:[
+    {points:100, q:"This backup type copies all selected data every time it runs.", a:"What is a full backup?"},
+    {points:200, q:"This metric answers: How long can the business tolerate the system being unavailable?", a:"What is RTO (Recovery Time Objective)?"},
+    {points:300, q:"This metric answers: How much data, measured in time, can the organization afford to lose?", a:"What is RPO (Recovery Point Objective)?"},
+    {points:400, q:"This discussion-based exercise has participants walk through an incident without taking production actions.", a:"What is a tabletop exercise?"},
+    {points:500, q:"This process compares the organization's current security state with its desired or required state.", a:"What is gap analysis?"},
+  ]},
+  { name:"Automate It", clues:[
+    {points:100, q:"Using technology or scripts to perform a task with minimal human intervention is called this.", a:"What is automation?"},
+    {points:200, q:"Coordinating multiple automated tasks into a larger end-to-end workflow is called this.", a:"What is orchestration?"},
+    {points:300, q:"PowerShell or Python automatically creating a new employee account and permissions is an example of this common automation use case.", a:"What is user/resource provisioning?"},
+    {points:400, q:"This automation benefit means routine work is handled by technology so employees can focus on higher-value tasks.", a:"What is a workforce multiplier?"},
+    {points:500, q:"Poorly designed or undocumented automation that becomes harder to maintain over time creates this long-term problem.", a:"What is technical debt?"},
+  ]},
+  { name:"Know Your Threat Actor", clues:[
+    {points:100, q:"An employee uses an unapproved cloud-storage service without the IT department's knowledge.", a:"What is shadow IT?"},
+    {points:200, q:"A disgruntled employee intentionally steals sensitive company information using legitimate access.", a:"What is an insider threat?"},
+    {points:300, q:"This threat actor uses hacking to promote a social or political cause.", a:"What is a hacktivist?"},
+    {points:400, q:"This threat actor is typically financially motivated and may conduct fraud, ransomware, or data theft for profit.", a:"What is organized crime?"},
+    {points:500, q:"This well-funded, highly sophisticated actor may conduct long-term espionage and develop custom or zero-day exploits in support of a government.", a:"What is a nation-state threat actor?"},
+  ]},
+];
+
+/* ---------------------------------------------------------------
+   STATE
+------------------------------------------------------------------*/
+const STORAGE_KEY = "secplus-week2-jeopardy-state-v1";
+
+let state = loadState();
+
+function defaultState(){
+  return {
+    teams: [], // {name, score}
+    used: {}, // "catIdx-clueIdx": true
+    started: false,
+    showStandings:false
+  };
+}
+
+function loadState(){
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(raw) return Object.assign(defaultState(), JSON.parse(raw));
+  }catch(e){}
+  return defaultState();
+}
+function saveState(){
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+}
+
+/* ---------------------------------------------------------------
+   SETUP SCREEN
+------------------------------------------------------------------*/
+const teamInputsEl = document.getElementById('team-inputs');
+const setupScreen = document.getElementById('setup-screen');
+const gameScreen = document.getElementById('game-screen');
+
+function renderTeamInputs(names){
+  teamInputsEl.innerHTML = "";
+  names.forEach((n, i) => {
+    const row = document.createElement('div');
+    row.className = 'team-row';
+    row.innerHTML = `
+      <input type="text" placeholder="Team ${i+1} name" value="${escapeAttr(n)}" data-i="${i}">
+      ${names.length > 2 ? `<button class="remove" data-remove="${i}" title="remove">×</button>` : ''}
+    `;
+    teamInputsEl.appendChild(row);
+  });
+  teamInputsEl.querySelectorAll('input').forEach(inp=>{
+    inp.addEventListener('input', ()=>{ validateStart(); });
+  });
+  teamInputsEl.querySelectorAll('[data-remove]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const idx = +btn.dataset.remove;
+      currentNames.splice(idx,1);
+      renderTeamInputs(currentNames);
+    });
+  });
+}
+
+let currentNames = ["", ""];
+renderTeamInputs(currentNames);
+
+document.getElementById('add-team').addEventListener('click', ()=>{
+  if(currentNames.length >= 6) return;
+  currentNames.push("");
+  renderTeamInputs(currentNames);
+});
+
+function validateStart(){
+  const inputs = [...teamInputsEl.querySelectorAll('input')];
+  const filled = inputs.filter(i=>i.value.trim().length>0).length;
+  document.getElementById('start-btn').disabled = filled < 2;
+}
+validateStart();
+
+document.getElementById('start-btn').addEventListener('click', ()=>{
+  const inputs = [...teamInputsEl.querySelectorAll('input')];
+  const teams = inputs.map(i=>i.value.trim()).filter(Boolean).map(name=>({name, score:0}));
+  if(teams.length < 2) return;
+  state = defaultState();
+  state.teams = teams;
+  state.started = true;
+  saveState();
+  render();
+});
+
+function escapeAttr(s){ return (s||"").replace(/"/g,'&quot;'); }
+function escapeHtml(s){ return (s||"").replace(/[&<>]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c])); }
+
+/* ---------------------------------------------------------------
+   RENDER
+------------------------------------------------------------------*/
+function render(){
+  if(!state.started){
+    setupScreen.style.display = 'block';
+    gameScreen.style.display = 'none';
+    return;
+  }
+  setupScreen.style.display = 'none';
+  gameScreen.style.display = 'block';
+
+  renderScoreboard();
+
+  const boardView = document.getElementById('board-view');
+  const standingsView = document.getElementById('standings-view');
+
+  if(state.showStandings){
+    boardView.style.display='none';
+    standingsView.style.display='block';
+    renderStandings();
+  } else {
+    boardView.style.display='block';
+    standingsView.style.display='none';
+    renderBoard();
+  }
+}
+
+function renderScoreboard(){
+  const el = document.getElementById('scoreboard');
+  el.innerHTML = state.teams.map((t,i)=>`
+    <div class="score-chip">
+      <span class="name">${escapeHtml(t.name)}</span>
+      <div class="score-adj">
+        <button data-adj="${i}:100">+</button>
+        <button data-adj="${i}:-100">–</button>
+      </div>
+      <span class="amt ${t.score<0?'neg':''}">${t.score}</span>
+    </div>
+  `).join('');
+  el.querySelectorAll('[data-adj]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const [i,delta] = btn.dataset.adj.split(':').map(Number);
+      state.teams[i].score += delta;
+      saveState();
+      render();
+    });
+  });
+}
+
+function renderBoard(){
+  const boardEl = document.getElementById('board');
+  const cols = CATEGORIES.length;
+  boardEl.style.gridTemplateColumns = `repeat(${cols}, minmax(100px, 1fr))`;
+
+  let html = CATEGORIES.map(c=>`<div class="cat-header">${escapeHtml(c.name)}</div>`).join('');
+
+  const maxRows = Math.max(...CATEGORIES.map(c=>c.clues.length));
+  for(let row=0; row<maxRows; row++){
+    CATEGORIES.forEach((c, ci)=>{
+      const clue = c.clues[row];
+      if(!clue){ html += `<div></div>`; return; }
+      const key = `${ci}-${row}`;
+      const used = state.used[key];
+      html += `<div class="clue-cell ${used?'used':''}" data-key="${key}" data-cat="${ci}" data-row="${row}">
+        ${used ? '' : clue.points}
+      </div>`;
+    });
+  }
+  boardEl.innerHTML = html;
+
+  boardEl.querySelectorAll('.clue-cell:not(.used)').forEach(cell=>{
+    cell.addEventListener('click', ()=>{
+      const ci = +cell.dataset.cat, row = +cell.dataset.row;
+      openClueModal(ci, row);
+    });
+  });
+}
+
+function renderStandings(){
+  const sorted = [...state.teams].sort((a,b)=>b.score-a.score);
+  const el = document.getElementById('standings-view');
+  el.innerHTML = `
+    <h2>🏆 Standings</h2>
+    ${sorted.map((t,i)=>`
+      <div class="standing-row ${i===0?'first':''}">
+        <span class="rank">${i+1}</span>
+        <span class="n">${escapeHtml(t.name)}</span>
+        <span class="s">${t.score}</span>
+      </div>
+    `).join('')}
+    <button class="link-btn" id="back-to-board" style="margin-top:14px;">back to board</button>
+  `;
+  document.getElementById('back-to-board').addEventListener('click', ()=>{
+    state.showStandings = false;
+    saveState();
+    render();
+  });
+}
+
+document.getElementById('standings-btn').addEventListener('click', ()=>{
+  state.showStandings = true;
+  saveState();
+  render();
+});
+
+/* ---------------------------------------------------------------
+   CLUE MODAL
+------------------------------------------------------------------*/
+function openClueModal(ci, row){
+  const cat = CATEGORIES[ci];
+  const clue = cat.clues[row];
+  const key = `${ci}-${row}`;
+  const modalRoot = document.getElementById('modal-root');
+
+  let revealed = false;
+
+  function draw(){
+    modalRoot.innerHTML = `
+      <div class="overlay" id="overlay">
+        <div class="clue-modal">
+          <button class="close-x" id="close-modal">✕</button>
+          <div class="term-bar">
+            <span class="term-dot r"></span><span class="term-dot y"></span><span class="term-dot g"></span>
+            <span class="path">~/review/${cat.name.toLowerCase().replace(/[^a-z0-9]+/g,'-')}</span>
+          </div>
+          <div class="clue-body">
+            <div class="clue-cat">${escapeHtml(cat.name)}</div>
+            <div class="clue-pts">${clue.points} pts</div>
+            <div class="clue-question">${escapeHtml(clue.q)}</div>
+            ${revealed ? `
+              <div class="clue-answer"><span class="lbl">Answer</span>${escapeHtml(clue.a)}</div>
+              <div class="award-label">Who answered correctly?</div>
+              <div class="award-row">
+                ${state.teams.map((t,i)=>`<button class="award-btn" data-award="${i}">${escapeHtml(t.name)} +${clue.points}</button>`).join('')}
+                <button class="award-btn none" data-award="none">No one</button>
+              </div>
+            ` : `
+              <button class="reveal-btn" id="reveal-btn">Reveal Answer</button>
+            `}
+          </div>
+        </div>
+      </div>
+    `;
+    document.getElementById('close-modal').addEventListener('click', closeModal);
+    document.getElementById('overlay').addEventListener('click', (e)=>{
+      if(e.target.id === 'overlay') closeModal();
+    });
+    if(!revealed){
+      document.getElementById('reveal-btn').addEventListener('click', ()=>{
+        revealed = true;
+        draw();
+      });
+    } else {
+      modalRoot.querySelectorAll('[data-award]').forEach(btn=>{
+        btn.addEventListener('click', ()=>{
+          const val = btn.dataset.award;
+          if(val !== 'none'){
+            state.teams[+val].score += clue.points;
+          }
+          state.used[key] = true;
+          saveState();
+          closeModal();
+          render();
+        });
+      });
+    }
+  }
+
+  function closeModal(){
+    modalRoot.innerHTML = '';
+  }
+
+  draw();
+}
+
+/* ---------------------------------------------------------------
+   RESET
+------------------------------------------------------------------*/
+function doReset(){
+  localStorage.removeItem(STORAGE_KEY);
+  state = defaultState();
+  currentNames = ["",""];
+  renderTeamInputs(currentNames);
+  validateStart();
+  render();
+}
+
+function openResetConfirm(){
+  const modalRoot = document.getElementById('modal-root');
+  modalRoot.innerHTML = `
+    <div class="overlay" id="reset-overlay">
+      <div class="clue-modal" style="max-width:420px;">
+        <div class="clue-body" style="padding:28px 26px;">
+          <div class="clue-cat" style="color:var(--term-red);">Reset Game</div>
+          <p style="color:var(--ink);font-size:15px;line-height:1.5;margin:14px 0 22px;">
+            This clears all scores and board progress. This can't be undone.
+          </p>
+          <div class="award-row">
+            <button class="award-btn" id="confirm-reset" style="border-color:var(--term-red);color:var(--term-red);">Yes, reset</button>
+            <button class="award-btn none" id="cancel-reset">Cancel</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+  document.getElementById('reset-overlay').addEventListener('click', (e)=>{
+    if(e.target.id === 'reset-overlay') modalRoot.innerHTML = '';
+  });
+  document.getElementById('cancel-reset').addEventListener('click', ()=>{
+    modalRoot.innerHTML = '';
+  });
+  document.getElementById('confirm-reset').addEventListener('click', ()=>{
+    modalRoot.innerHTML = '';
+    doReset();
+  });
+}
+
+document.getElementById('reset-btn').addEventListener('click', openResetConfirm);
+
+render();
+</script>
+</body>
+</html>
